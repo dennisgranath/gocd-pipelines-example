@@ -13,39 +13,31 @@ pipelines:
             branch: master
             auto_update: false
       parameters:
-        - name: TARGET
-          value: app-server
-        - name: SERVICE_NAME
-          value: example-service
         - name: CONFIG_FILE
           value: config.yml
+  - group: example-service
+    pipeline_template: deploy
+    pipeline:
+      label_template: 1.${COUNT}.0
+      name: example-service-qa
+      materials:
+        - type: dependency
+          attributes:
+            upstream: example-service-build
+            stage: Build
+            auto_update: true
+      parameters:
+       - name: CONFIG_FILE
+         value: config.yml
+       - name: TARGET
+         value: app-server
+       - name: SERVICE_NAME
+         value: example-service
 templates:
-  build:
+  deploy:
     pipeline:
       stages:
-        - name: Build
-          jobs:
-            - name: build
-              artifacts:
-                - source: target
-                  type: build
-                - source: '#{CONFIG_FILE}'
-                  type: build
-
-              tasks:
-                - type: exec
-                  attributes:
-                    command: /bin/bash
-                    arguments:
-                      - -c
-                      - mvn versions:set -DnewVersion=${GO_PIPELINE_LABEL}
-                - type: exec
-                  attributes:
-                    command: /bin/bash
-                    arguments:
-                      - -c
-                      - mvn clean install
-        - name: QA
+        - name: Deploy
           jobs:
             - name: deploy
               tasks:
@@ -84,3 +76,28 @@ templates:
                     arguments:
                       - -c
                       - ansible all -i "#{TARGET}," -u root -m shell -a "java -jar /root/#{SERVICE_NAME}.jar server /root/#{CONFIG_FILE} > app.out 2> app.err < /dev/null &"
+
+  build:
+    pipeline:
+      stages:
+        - name: Build
+          jobs:
+            - name: build
+              artifacts:
+                - source: target
+                  type: build
+                - source: '#{CONFIG_FILE}'
+                  type: build
+              tasks:
+                - type: exec
+                  attributes:
+                    command: /bin/bash
+                    arguments:
+                      - -c
+                      - mvn versions:set -DnewVersion=${GO_PIPELINE_LABEL}
+                - type: exec
+                  attributes:
+                    command: /bin/bash
+                    arguments:
+                      - -c
+                      - mvn clean install
