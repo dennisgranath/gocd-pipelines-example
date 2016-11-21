@@ -18,12 +18,12 @@ pipelines:
   - group: example-service
     pipeline_template: deploy
     pipeline:
-      label_template: 1.${COUNT}.0
+      label_template: ${example-service-build}
       name: example-service-qa
       materials:
         - type: dependency
           attributes:
-            upstream: example-service-build
+            pipeline: example-service-build
             stage: Build
             auto_update: true
       parameters:
@@ -33,6 +33,37 @@ pipelines:
          value: app-server
        - name: SERVICE_NAME
          value: example-service
+       - name: UPSTREAM_PIPELINE
+         value: example-service-build
+       - name: UPSTREAM_STAGE
+         value: Build
+       - name: UPSTREAM_JOB
+         value: build
+  - group: example-service
+    pipeline_template: deploy
+    pipeline:
+      label_template: ${example-service-qa}
+      name: example-service-prod
+      materials:
+        - type: dependency
+          attributes:
+            pipeline: example-service-qa
+            stage: Deploy
+            auto_update: true
+      parameters:
+        - name: CONFIG_FILE
+          value: config.yml
+        - name: TARGET
+          value: app-server
+        - name: SERVICE_NAME
+          value: example-service
+        - name: UPSTREAM_PIPELINE
+          value: example-service-qa
+        - name: UPSTREAM_STAGE
+          value: Deploy
+        - name: UPSTREAM_JOB
+          value: deploy
+
 templates:
   deploy:
     pipeline:
@@ -40,16 +71,23 @@ templates:
         - name: Deploy
           jobs:
             - name: deploy
+              artifacts:
+                - source: target
+                  type: build
+                - source: '#{CONFIG_FILE}'
+                  type: build
               tasks:
                 - type: fetch
                   attributes:
-                    stage: Build
-                    job: build
+                    pipeline: '#{UPSTREAM_PIPELINE}'
+                    stage: '#{UPSTREAM_STAGE}'
+                    job: '#{UPSTREAM_JOB}'
                     source: target
                 - type: fetch
                   attributes:
-                    stage: Build
-                    job: build
+                    pipeline: '#{UPSTREAM_PIPELINE}'
+                    stage: '#{UPSTREAM_STAGE}'
+                    job: '#{UPSTREAM_JOB}'
                     source: '#{CONFIG_FILE}'
                     is_source_a_file: true
                 - type: exec
