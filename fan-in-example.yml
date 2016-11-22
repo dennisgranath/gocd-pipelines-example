@@ -1,0 +1,94 @@
+---
+pipelines:
+  - group: fan-in-example
+    pipeline:
+      name: build
+      label_template: 0.${COUNT}.0
+      materials:
+        - type: git
+          attributes:
+            url: https://github.com/dennisgranath/example-service.git
+            branch: master
+      stages:
+        - name: Build
+          jobs:
+            - name: build
+              tasks:
+                - type: exec
+                  attributes:
+                    command: /bin/bash
+                    arguments:
+                      - -c
+                      - echo done
+  - group: fan-in-example
+    pipeline:
+      name: test
+      label_template: ${build}
+      materials:
+        - type: dependency
+          attributes:
+            pipeline: build
+            stage: Build
+        - type: git
+          attributes:
+            url: https://github.com/dennisgranath/example-service.git
+            branch: master
+      stages:
+        - name: Test
+          jobs:
+            - name: test
+              tasks:
+                - type: exec
+                  attributes:
+                    command: /bin/bash
+                    arguments:
+                      - -c
+                      - echo done
+  - group: fan-in-example
+    pipeline:
+      name: perf-test
+      label_template: ${build}
+      materials:
+        - type: dependency
+          attributes:
+            pipeline: build
+            stage: Build
+        - type: git
+          attributes:
+            url: https://github.com/dennisgranath/example-service.git
+            branch: master
+      stages:
+        - name: Perf-test
+          jobs:
+            - name: perf-test
+              tasks:
+                - type: exec
+                  attributes:
+                    command: /bin/bash
+                    arguments:
+                      - -c
+                      - sleep 60 && echo done
+  - group: fan-in-example
+    pipeline:
+      name: prod
+      label_template: ${perf-test}
+      materials:
+        - type: dependency
+          attributes:
+            pipeline: test
+            stage: Test
+        - type: dependency
+          attributes:
+            pipeline: perf-test
+            stage: Perf-test
+      stages:
+        - name: Prod
+          jobs:
+            - name: prod
+              tasks:
+                - type: exec
+                  attributes:
+                    command: /bin/bash
+                    arguments:
+                      - -c
+                      - echo done
