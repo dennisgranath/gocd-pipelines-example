@@ -1,0 +1,42 @@
+---
+pipelines:
+  - group: everything-on-one
+    pipeline:
+      name: example-service
+      label_template: 0.${COUNT}.0
+      materials:
+        - type: git
+          attributes:
+            url: https://github.com/dennisgranath/example-service.git
+            branch: master
+      stages:
+        - name: Build
+          jobs:
+            - name: build
+              tasks:
+                - type: exec
+                  attributes:
+                    command: /bin/bash
+                    arguments:
+                      - -c
+                      - echo done
+        - name: QA
+          jobs:
+            - name: qa
+              tasks:
+                - type: exec
+                  attributes:
+                    command: /bin/bash
+                    arguments:
+                      - -c
+                      - echo done
+        - name: Prod
+          jobs:
+            - name: qa
+              tasks:
+                - type: exec
+                  attributes:
+                    command: /bin/bash
+                    arguments:
+                      - -c
+                      - echo done
